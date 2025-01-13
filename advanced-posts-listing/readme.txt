@@ -4,8 +4,8 @@ Donate link:
 Tags: post list,posts,blog post, post listing, blog listing
 Requires at least: 6.2
 Requires PHP: 7.4
-Tested up to: 6.7.0
-Stable tag: 1.0.5
+Tested up to: 6.7.1
+Stable tag: 1.0.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -108,6 +108,9 @@ Yes, with this plugin you can optionally display all the information inside ever
 
 
 == Changelog ==
+
+= 1.0.6 =
+* Fix : Tested with latest version 6.7.1 and fixed layout issues.
 
 = 1.0.5 =
 * New : Manageable background and text color for read more & pagination button.

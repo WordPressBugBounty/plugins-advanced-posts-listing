@@ -6,7 +6,7 @@
  * Description:       A Gutenberg block that enables site admins to add & display beautiful blog posts listing / custom post type listing on frontend with live preview in editor.
  * Requires at least: 5.5
  * Requires PHP:      7.0
- * Version:           1.0.5
+ * Version:           1.0.6
  * Author:            flippercode
  * Author URI:        https://weplugins.com/
  * License:           GPLv2 or later
@@ -693,12 +693,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
             if (isset($attributes['PaginationOnToggler']) && !empty($attributes['PaginationOnToggler'])) {
                 $args['paged'] = get_query_var('paged') ? get_query_var('paged') : 1;
             }
-            // $args['meta_query'] = array(
-            //     array(
-            //         'key'     => '_thumbnail_id',
-            //         'compare' => 'EXISTS',
-            //     ),
-            // );
+            
             $query = new WP_Query($args);
 
             if ($query->have_posts()) :
