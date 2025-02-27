@@ -6,7 +6,7 @@
  * Description:       A Gutenberg block that enables site admins to add & display beautiful blog posts listing / custom post type listing on frontend with live preview in editor.
  * Requires at least: 5.5
  * Requires PHP:      7.0
- * Version:           1.0.6
+ * Version:           1.0.7
  * Author:            flippercode
  * Author URI:        https://weplugins.com/
  * License:           GPLv2 or later
@@ -154,6 +154,9 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                     case 'listing-layout':
                         $list_items_markup = $this->aplb_listing_layout($args, $attributes);
                         break;
+                        case 'listing-layout-two':
+                            $list_items_markup = $this->aplb_listing_layout_two($args, $attributes);
+                            break;    
                     case 'grid-layout':
                         $list_items_markup = $this->aplb_grid_layout($args, $attributes);
                         break;
@@ -182,6 +185,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                 $list_items_markup
             );
         }
+
 
         function aplb_listing_layout($args, $attributes)
         {
@@ -287,7 +291,12 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                             }
                             $list_items_markup .= '    <div class="image-container">';
                             if (!empty($custom_width) && !empty($custom_height)) {
-                                $list_items_markup .= '<img class="block-image" src="' . esc_url($image_url) . '" style="max-width: ' . esc_attr($custom_width) . '; max-height: ' . esc_attr($custom_height) . ';">';
+                                if(wp_is_mobile()){
+                                    $list_items_markup .= '<img class="block-image" src="' . esc_url($image_url) . '" >';
+                                }else{
+                                    $list_items_markup .= '<img class="block-image" src="' . esc_url($image_url) . '" style="max-width: ' . esc_attr($custom_width) . '; max-height: ' . esc_attr($custom_height) . ';">';
+                                }
+                                
                             } else {
                                 $list_items_markup .= '<img class="block-image" src="' . esc_url($image_url) . '">';
                             }
@@ -372,7 +381,219 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
 
                 if ($pagination_links) {
                     $alignment_class = isset($attributes['paginationAline']) ? $attributes['paginationAline'] : 'center';
-                    $list_items_markup .= '<nav class="pagination ' . esc_attr($alignment_class) . '">';
+                    $list_items_markup .= '<nav class="pagination wep-pagination ' . esc_attr($alignment_class) . '">';
+
+                    // Output the pagination links
+                    foreach ($pagination_links as $link) {
+                        $list_items_markup .= str_replace(
+                            array('<a', '</a>', 'page-numbers'),
+                            array('<a class="page-numbers"', '</a>', 'page-numbers'),
+                            $link
+                        );
+                    }
+
+                    $list_items_markup .= '</nav>';
+                }
+            }
+
+            return  $list_items_markup;
+        }
+
+
+        function aplb_listing_layout_two($args, $attributes)
+        {
+
+
+            $title_Manage_styling = !empty($attributes['title_Manage_styling']) ? 'true' : 'false';
+            $title_font_size = !empty($attributes['title_font_size']) ? $attributes['title_font_size'] : '1.5rem';
+
+            $Meta_Manage_styling = !empty($attributes['Meta_Manage_styling']) ? 'true' : 'false';
+            $Meta_font_size = !empty($attributes['Meta_font_size']) ? $attributes['Meta_font_size'] : '0.875rem';
+
+            $Content_Manage_styling = !empty($attributes['Content_Manage_styling']) ? 'true' : 'false';
+            $Content_font_size = !empty($attributes['Content_font_size']) ? $attributes['Content_font_size'] : '1.5rem';
+
+
+            $showReadMoreToggler = !empty($attributes['showReadMoreToggler']) ? 'true' : 'false';
+            $css = '';
+
+            if ($showReadMoreToggler === 'true') {
+                $button_Top_bottom_Padding = !empty($attributes['button_Top_bottom_Padding']) ? $attributes['button_Top_bottom_Padding'] : '8px';
+                $button_Right_Left_Padding = !empty($attributes['button_Right_Left_Padding']) ? $attributes['button_Right_Left_Padding'] : '16px';
+                $ReadMoreTextColor = !empty($attributes['ReadMoreTextColor']) ? $attributes['ReadMoreTextColor'] : '#FFFFFF';
+                $ReadMoreBgColor = !empty($attributes['ReadMoreBgColor']) ? $attributes['ReadMoreBgColor'] : '#000000';
+
+                $css .= '
+                .wep-btn {
+                    background-color: ' . $ReadMoreBgColor . '!important;
+                    color: ' . $ReadMoreTextColor . ' !important;
+                    padding: ' . $button_Top_bottom_Padding . ' ' . $button_Right_Left_Padding . ' !important;
+                }
+                .pagination .page-numbers:hover, .pagination .page-numbers.current {
+                    background-color:' . $ReadMoreBgColor . '!important;
+                    color: ' . $ReadMoreTextColor . '!important;
+                    border-color: ' . $ReadMoreBgColor . '!important;
+                }';
+            }
+            $customCSS = !empty($attributes['customCSS']) ? $attributes['customCSS'] : '';
+
+
+            $row_gap = isset($attributes['rowGap']) && !empty($attributes['rowGap']) ? $attributes['rowGap'] : '30px';
+            $row_gap = str_replace("px", "", $row_gap);
+            $row_gap .= 'px';
+            if (!empty($customCSS)) {
+                $css .= $customCSS;
+            }
+            $css .= '
+            .wep-card-text {
+                margin-bottom: ' . $row_gap . ' !important; 
+            }
+            .listing-layout {
+                gap: ' . $row_gap . ' !important; 
+            }';
+            $css = apply_filters('apl_listing_style', $css, $attributes);
+            $custom_css = "<style>" . $css . "</style>";
+
+            $list_items_markup = '';
+            $list_items_markup .= $custom_css;
+            $list_items_markup .= '<div class="wep-root"><div class="listing-layout" style="gap: 30px;">';
+            if (isset($attributes['PaginationOnToggler']) && !empty($attributes['PaginationOnToggler'])) {
+                $args['paged'] = get_query_var('paged') ? get_query_var('paged') : 1;
+            }
+            $query = new WP_Query($args);
+
+
+            if ($query->have_posts()) :
+                while ($query->have_posts()) : $query->the_post();
+                    $post_title = get_the_title();
+                    $post_date  = get_the_date();
+                    $post_permalink = get_permalink();
+                    $post_author  = get_the_author();
+                    $post_categories = get_the_category();
+                    $category_names = array();
+
+                    if (empty($post_categories)) {
+                        $taxonomies = get_object_taxonomies(get_post(), 'names');
+                        foreach ($taxonomies as $taxonomy) {
+                            $terms = get_the_terms(get_the_ID(), $taxonomy);
+                            if ($terms && !is_wp_error($terms)) {
+                                foreach ($terms as $term) {
+                                    $category_names[] = $term->name;
+                                }
+                            }
+                        }
+                    } else {
+                        foreach ($post_categories as $category) {
+                            $category_names[] = $category->name;
+                        }
+                    }
+
+                    $category_list = implode(', ', $category_names);
+                    $list_items_markup .= '<div class="wep-card wep-card-horizontal">';
+                    $image_url = get_the_post_thumbnail_url(get_the_ID(), 'large');
+                    if (!empty($image_url)) {
+
+                        if (isset($attributes['showImgToggler']) && $attributes['showImgToggler'] == 1) {
+                            if (isset($attributes['imageUrl'])) {
+                                $image_url = get_the_post_thumbnail_url(get_the_ID(), 'large');
+
+                                if (empty($attributes['selectedImageTogggler']) && empty($attributes['widthPercentageState'])) {
+                                    $custom_width = isset($attributes['ImgWidth']) ? $attributes['ImgWidth'] : '';
+                                    $custom_height = isset($attributes['height']) ? $attributes['height'] : '';
+                                } elseif (isset($attributes['widthPercentageState']) && $attributes['widthPercentageState'] == true && empty($attributes['selectedImageTogggler'])) {
+                                    $custom_width = $attributes['widthPercentage'];
+                                    $custom_height = $attributes['widthPercentage'];
+                                }
+                            }
+                            $list_items_markup .= '    <div class="wep-card-img">';
+                            if (!empty($custom_width) && !empty($custom_height)) {
+                                $list_items_markup .= '<img src="' . esc_url($image_url) . '" style="max-width: ' . esc_attr($custom_width) . '; max-height: ' . esc_attr($custom_height) . ';">';
+                            } else {
+                                $list_items_markup .= '<img src="' . esc_url($image_url) . '">';
+                            }
+                            $list_items_markup .= '    </div>';
+                        }
+                    }
+                    $list_items_markup .= '<div class="wep-card-body"><div class="wep-card-heading">';
+                    if (isset($attributes['showPostTitle']) && $attributes['showPostTitle'] == 1) {
+                        $list_items_markup .= '    <h4 class="wep-card-title"  ';
+                        if ($title_Manage_styling === 'true') {
+                            $list_items_markup .= ' style="font-size:' . esc_html($title_font_size) . '"';
+                        }
+                        $list_items_markup .= '>';
+                        $list_items_markup .= '<a href="' . esc_url($post_permalink) . '" >' . esc_html($post_title) . '</a>';
+                        $list_items_markup .= '    </h4>';
+                    }
+
+                    if (isset($attributes['showMeta']) && $attributes['showMeta'] == 1) {
+                        $list_items_markup .= '    <div class="meta-data" ';
+                        if ($Meta_Manage_styling === 'true') {
+                            $list_items_markup .= ' style="font-size:' . esc_html($Meta_font_size) . '"';
+                        }
+                        $list_items_markup .= '>';
+                        $list_items_markup .= esc_html($post_date) . ' | Author: ' . esc_html($post_author) . ' | Categories: ' . esc_html($category_list);
+                        $list_items_markup .= '    </div>';
+                    }
+                    $list_items_markup .= '</div>';
+                    if (isset($attributes['showContent']) && $attributes['showContent'] == 1) {
+                        if (isset($attributes['contentType'])) {
+                            if ($attributes['contentType'] == 'Excerpt') {
+                                $words_limit = isset($attributes['wordsLimit']) ? intval($attributes['wordsLimit']) : 100;
+                                $excerpt = get_the_excerpt();
+                                $words = explode(' ', $excerpt);
+                                $post_content = implode(' ', array_slice($words, 0, $words_limit));
+                            } elseif ($attributes['contentType'] == 'Full-Post') {
+                                $post_content = get_the_content();
+                            }
+                        }
+                        $list_items_markup .= '    <div class="wep-card-text"';
+                        if ($Content_Manage_styling === 'true') {
+                            $list_items_markup .= ' style="font-size: ' . esc_html($Content_font_size) . ';"';
+                        }
+                        $list_items_markup .= ' ><p>';
+                        $list_items_markup .=      apply_filters('adv_post_content', $post_content);
+                        $list_items_markup .= '    </p></div>';
+                    }
+                    $list_items_markup .= '</div>';
+
+                    $list_items_markup .= '    <div class="wep-card-footer">';
+                    $list_items_markup .= '        <a target="_blank" href="' . esc_url($post_permalink) . '" class="wep-btn wep-btn-primary"';
+                    $Read_more_font_size = !empty($attributes['Read_more_font_size']) ? $attributes['Read_more_font_size'] : '1rem';
+
+                    if ($showReadMoreToggler === 'true') {
+
+                        $list_items_markup .= ' style="font-size:' . esc_html($Read_more_font_size) . '"';
+                    }
+                    $ReadMoreText = !empty($attributes['ReadMoreText']) ? $attributes['ReadMoreText'] : 'Read More';
+                    $list_items_markup .= '>' . $ReadMoreText . '</a>';
+                    $list_items_markup .= '    </div>';
+                    $list_items_markup .= '</div>';
+
+                endwhile;
+
+                // Pagination
+
+                wp_reset_postdata();
+
+            endif;
+
+            $list_items_markup .= '</div></div>';
+
+            if (isset($attributes['PaginationOnToggler']) && !empty($attributes['PaginationOnToggler'])) {
+                $pagination_args = array(
+                    'total'        => $query->max_num_pages,
+                    'current'      => $args['paged'],
+                    'mid_size'     => 2,
+                    'prev_text' => isset($attributes['prevName']) ? __($attributes['prevName']) : __('Prev'),
+                    'next_text' => isset($attributes['nextName']) ? __($attributes['nextName']) : __('Next'),
+                    'type'         => 'array',
+                );
+
+                $pagination_links = paginate_links($pagination_args);
+
+                if ($pagination_links) {
+                    $alignment_class = isset($attributes['paginationAline']) ? $attributes['paginationAline'] : 'center';
+                    $list_items_markup .= '<nav class="pagination wep-pagination ' . esc_attr($alignment_class) . '">';
 
                     // Output the pagination links
                     foreach ($pagination_links as $link) {
@@ -415,7 +636,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
 
                 $css .= '
                      
-                .grid-layout .read-more-button {
+                .grid-layout .wep-btn {
                     padding: ' . $button_Top_bottom_Padding . ' ' . $button_Right_Left_Padding . ' !important;
                     background-color:' . $ReadMoreBgColor . '!important;
                     color: ' . $ReadMoreTextColor . '!important;
@@ -442,6 +663,8 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
             if (!empty($customCSS)) {
                 $css .= $customCSS;
             }
+
+
             $css .=  '
             .grid-layout {
                 gap: ' . $row_gap . ' ' . $column_gap . ' !important; 
@@ -468,7 +691,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
 
             $list_items_markup = '';
             $list_items_markup .= $custom_css;
-            $list_items_markup .= '<div class="grid-layout">';
+            $list_items_markup .= '<div class="wep-root" ><div class="grid-layout" >';
             if (isset($attributes['PaginationOnToggler']) && !empty($attributes['PaginationOnToggler'])) {
                 $args['paged'] = get_query_var('paged') ? get_query_var('paged') : 1;
             }
@@ -500,7 +723,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                     }
 
                     $category_list = implode(', ', $category_names);
-                    $list_items_markup .= '<div class="post-container">';
+                    $list_items_markup .= '<div class="wep-card">';
                     if (isset($attributes['showImgToggler']) && $attributes['showImgToggler'] == 1) {
                         if (isset($attributes['imageUrl'])) {
                             $image_url = get_the_post_thumbnail_url(get_the_ID(), 'medium');
@@ -514,25 +737,26 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                             }
                         }
                         if (isset($image_url) && !empty($image_url)) {
-                            $list_items_markup .= '    <div class="image-container">';
+                            $list_items_markup .= '    <div class="wep-card-img">';
                             if (!empty($custom_width) && !empty($custom_height)) {
-                                $list_items_markup .= '<img class="block-image" src="' . esc_url($image_url) . '" style="max-width: ' . esc_attr($custom_width) . '; max-height: ' . esc_attr($custom_height) . ';">';
+                                $list_items_markup .= '<img src="' . esc_url($image_url) . '">';
                             } else {
-                                $list_items_markup .= '<img class="block-image" src="' . esc_url($image_url) . '">';
+                                $list_items_markup .= '<img src="' . esc_url($image_url) . '">';
                             }
-                            $list_items_markup .= '        <span class="category-tag left">' . esc_html($category_list) . '</span>';
+                            $list_items_markup .= '        <span class="wep-chip">' . esc_html($category_list) . '</span>';
                             $list_items_markup .= '    </div>';
                         }
                     }
 
+                    $list_items_markup .= '<div class="wep-card-body"><div class="wep-card-heading">';
                     if (isset($attributes['showPostTitle']) && $attributes['showPostTitle'] == 1) {
-                        $list_items_markup .= '    <div class="post-title"  ';
+                        $list_items_markup .= '    <h4 class="wep-card-title"  ';
                         if ($title_Manage_styling === 'true') {
                             $list_items_markup .= ' style="font-size:' . esc_html($title_font_size) . '"';
                         }
                         $list_items_markup .= '>';
-                        $list_items_markup .= ' <a href="' . esc_url($post_permalink) . '" class="title">' . esc_html($post_title) . '</a>';
-                        $list_items_markup .= '    </div>';
+                        $list_items_markup .= ' <a href="' . esc_url($post_permalink) . '">' . esc_html($post_title) . '</a>';
+                        $list_items_markup .= '    </h4>';
                     }
 
                     if (isset($attributes['showMeta']) && $attributes['showMeta'] == 1) {
@@ -544,7 +768,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                         $list_items_markup .= '<p>' . esc_html($post_date) . ' | Author: ' . esc_html($post_author) . '</p>';
                         $list_items_markup .= '    </div>';
                     }
-
+                    $list_items_markup .= '</div>';
                     if (isset($attributes['showContent']) && $attributes['showContent'] == 1) {
                         if (isset($attributes['contentType'])) {
                             if ($attributes['contentType'] == 'Excerpt') {
@@ -556,7 +780,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                                 $post_content = get_the_content();
                             }
                         }
-                        $list_items_markup .= '    <div class="post-content"';
+                        $list_items_markup .= '    <div class="wep-card-text"';
                         if ($Content_Manage_styling === 'true') {
                             $list_items_markup .= ' style="font-size: ' . esc_html($Content_font_size) . ';"';
                         }
@@ -564,9 +788,10 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                         $list_items_markup .=      apply_filters('adv_post_content', $post_content);
                         $list_items_markup .= '    </p></div>';
                     }
+                    $list_items_markup .= '</div>';
 
-                    $list_items_markup .= '    <div class="read-more-btn">';
-                    $list_items_markup .= '        <a target="_blank" href="' . esc_url($post_permalink) . '" class="read-more-button"';
+                    $list_items_markup .= '    <div class="wep-card-footer">';
+                    $list_items_markup .= '        <a target="_blank" href="' . esc_url($post_permalink) . '" class="wep-btn wep-btn-primary"';
                     if ($showReadMoreToggler === 'true') {
                         $list_items_markup .= ' style="font-size:' . esc_html($Read_more_font_size) . '"';
                     }
@@ -582,7 +807,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
 
             endif;
 
-            $list_items_markup .= '</div>';
+            $list_items_markup .= '</div></div>';
             if (isset($attributes['PaginationOnToggler']) && !empty($attributes['PaginationOnToggler'])) {
                 $pagination_args = array(
                     'total'        => $query->max_num_pages,
@@ -596,7 +821,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                 $pagination_links = paginate_links($pagination_args);
                 if ($pagination_links) {
                     $alignment_class = isset($attributes['paginationAline']) ? $attributes['paginationAline'] : 'center';
-                    $list_items_markup .= '<nav class="pagination ' . esc_attr($alignment_class) . '">';
+                    $list_items_markup .= '<nav class="pagination wep-pagination ' . esc_attr($alignment_class) . '">';
 
                     // Output the pagination links
                     foreach ($pagination_links as $link) {
@@ -637,7 +862,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                 $ReadMoreBgColor = !empty($attributes['ReadMoreBgColor']) ? $attributes['ReadMoreBgColor'] : '#000000';
 
                 $css .= '
-                 .overlay-layout  .read-more-button {
+                 .overlay-layout  .wep-btn {
             padding: ' . $button_Top_bottom_Padding . ' ' . $button_Right_Left_Padding . ' !important;
 
                 background-color:' . $ReadMoreBgColor . '!important;
@@ -665,31 +890,30 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
             if (!empty($customCSS)) {
                 $css .= $customCSS;
             }
-            $css .=  '
-            .overlay-layout{
-                gap: ' . $row_gap . ' ' . $column_gap . ' !important; 
-            }
-         
-            @media (min-width: 992px) and (max-width: 1199px) {
-                .overlay-layout .post-container {
-                    width: calc(' . $width_percentage . '% - ' . $column_gap . ') !important; 
-                }
+
+            if( wp_is_mobile()){
+                $css .=  '
+                .overlay-layout{
+                    gap: ' . $row_gap . ' ' . $column_gap . ' !important; 
+                    grid-template-columns: repeat(1, 1fr);
+                }';
+            }else{
+                $css .=  '
+                .overlay-layout{
+                    gap: ' . $row_gap . ' ' . $column_gap . ' !important; 
+                    grid-template-columns: repeat('.$attributes["totalColoms"].', 1fr);
+                }';
             }
             
-            @media (min-width: 1200px) {
-                .overlay-layout .post-container {
-                    width: calc(' . $width_percentage . '% - ' . $column_gap . ') !important; 
-                }
-            }
-          
-            ';
 
             $css = apply_filters('wpl_overlay_style', $css, $attributes);
             $custom_css = "<style>" . $css . "</style>";
 
+
             $list_items_markup = '';
             $list_items_markup .= $custom_css;
-            $list_items_markup .= '<div class="overlay-layout">';
+            
+            $list_items_markup .= '<div class="wep-root"><div class="overlay-layout">';
             if (isset($attributes['PaginationOnToggler']) && !empty($attributes['PaginationOnToggler'])) {
                 $args['paged'] = get_query_var('paged') ? get_query_var('paged') : 1;
             }
@@ -722,7 +946,6 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                     }
 
                     $category_list = implode(', ', $category_names);
-                    $list_items_markup .= '<div class="post-container">';
                     if (isset($attributes['showImgToggler']) && $attributes['showImgToggler'] == 1) {
                         if (isset($attributes['imageUrl'])) {
                             $image_url = get_the_post_thumbnail_url(get_the_ID(), 'medium');
@@ -736,22 +959,23 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                             }
                         }
                         if (!empty($custom_width) && !empty($custom_height)) {
-                            $list_items_markup .= '    <div class="image-container" style = "background-image:url(' . esc_url($image_url) . ');max-width: ' . esc_attr($custom_width) . '; max-height: ' . esc_attr($custom_height) . ';">';
+                            $list_items_markup .= '    <div class="wep-card" style = "background-image:url(' . esc_url($image_url) . ');background-repeat: no-repeat;
+  background-size: cover;">';
                         } else {
-                            $list_items_markup .= '    <div class="image-container" style = "background-image:url(' . esc_url($image_url) . ');">';
+                            $list_items_markup .= '    <div class="wep-card" style = "background-image:url(' . esc_url($image_url) . ');background-repeat: no-repeat; background-size: cover;">';
                         }
-                        $list_items_markup .= '     <div class="overlay">';
-                        $list_items_markup .= '   <div class="overlay-content">';
+                        $list_items_markup .= '     <div class="wep-card-img-overlay">';
+                        $list_items_markup .= '   <div class="wep-card-body"><div class="wep-card-heading">';
                     }
 
                     if (isset($attributes['showPostTitle']) && $attributes['showPostTitle'] == 1) {
-                        $list_items_markup .= '    <div class="post-title"  ';
+                        $list_items_markup .= '    <h4 class="wep-card-title"  ';
                         if ($title_Manage_styling === 'true') {
                             $list_items_markup .= ' style="font-size:' . esc_html($title_font_size) . '"';
                         }
                         $list_items_markup .= '>';
                         $list_items_markup .= '<a href="' . esc_url($post_permalink) . '" class="title">' . esc_html($post_title) . '</a>';
-                        $list_items_markup .= '    </div>';
+                        $list_items_markup .= '    </h4>';
                     }
 
                     if (isset($attributes['showMeta']) && $attributes['showMeta'] == 1) {
@@ -763,7 +987,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                         $list_items_markup .= '<p>' . esc_html($post_date) . ' | Author: ' . esc_html($post_author) . ' | Categories: ' . esc_html($category_list) . '</p>';
                         $list_items_markup .= '    </div>';
                     }
-
+                    $list_items_markup .= '    </div>';
                     if (isset($attributes['showContent']) && $attributes['showContent'] == 1) {
                         if (isset($attributes['contentType'])) {
                             if ($attributes['contentType'] == 'Excerpt') {
@@ -775,7 +999,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                                 $post_content = get_the_content();
                             }
                         }
-                        $list_items_markup .= '    <div class="post-content"';
+                        $list_items_markup .= '    <div class="wep-card-text"';
                         if ($Content_Manage_styling === 'true') {
                             $list_items_markup .= ' style="font-size: ' . esc_html($Content_font_size) . ';"';
                         }
@@ -783,9 +1007,9 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                         $list_items_markup .=      apply_filters('adv_post_content', $post_content);
                         $list_items_markup .= '    </p></div>';
                     }
-
-                    $list_items_markup .= '    <div class="read-more-btn">';
-                    $list_items_markup .= '        <a target="_blank" href="' . esc_url($post_permalink) . '" class="read-more-button"';
+                    $list_items_markup .= '</div>';
+                    $list_items_markup .= '    <div class="wep-card-footer">';
+                    $list_items_markup .= '        <a target="_blank" href="' . esc_url($post_permalink) . '" class="wep-btn wep-btn-primary"';
                     if ($showReadMoreToggler === 'true') {
                         $list_items_markup .= ' style="font-size:' . esc_html($Read_more_font_size) . '"';
                     }
@@ -794,15 +1018,14 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                     $list_items_markup .= '    </div>';
                     $list_items_markup .= '    </div>';
                     $list_items_markup .= '    </div>';
-                    $list_items_markup .= '    </div>';
-                    $list_items_markup .= '</div>';
 
                 endwhile;
                 wp_reset_postdata();
 
             endif;
 
-            $list_items_markup .= '</div>';
+            $list_items_markup .= '</div></div>';
+
             if (isset($attributes['PaginationOnToggler']) && !empty($attributes['PaginationOnToggler'])) {
 
                 $pagination_args = array(
@@ -818,7 +1041,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
 
                 if ($pagination_links) {
                     $alignment_class = isset($attributes['paginationAline']) ? $attributes['paginationAline'] : 'center';
-                    $list_items_markup .= '<nav class="pagination ' . esc_attr($alignment_class) . '">';
+                    $list_items_markup .= '<nav class="pagination wep-pagination ' . esc_attr($alignment_class) . '">';
 
                     // Output the pagination links
                     foreach ($pagination_links as $link) {
@@ -859,7 +1082,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                 $ReadMoreTextColor = !empty($attributes['ReadMoreTextColor']) ? $attributes['ReadMoreTextColor'] : '#FFFFFF';
                 $ReadMoreBgColor = !empty($attributes['ReadMoreBgColor']) ? $attributes['ReadMoreBgColor'] : '#000000';
                 $css .= '
-                .slider-container .read-more-button {
+                .slider-container .wep-btn {
                     padding: ' . $button_Top_bottom_Padding . ' ' . $button_Right_Left_Padding . ' !important;
     
                     background-color:' . $ReadMoreBgColor . '!important;
@@ -878,7 +1101,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
             $custom_css = "<style>" . $css . "</style>";
             $list_items_markup = '';
             $list_items_markup .= $custom_css;
-            $list_items_markup .= '<div class="slider-container">';
+            $list_items_markup .= '<div class="wep-root"><div class="slider-container">';
             $list_items_markup .= '<div class="slider">';
             $query = new WP_Query($args);
             if ($query->have_posts()) :
@@ -908,7 +1131,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
 
                     $category_list = implode(', ', $category_names);
                     $list_items_markup .= '<div class="slide">';
-                    $list_items_markup .= '<div class="post-container">';
+                    $list_items_markup .= '<div class="wep-card">';
                     if (isset($attributes['showImgToggler']) && $attributes['showImgToggler'] == 1) {
                         if ($image_url) {
 
@@ -922,25 +1145,26 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                                     $custom_width = $attributes['widthPercentage'];
                                     $custom_height = $attributes['widthPercentage'];
                                 }
-                                $list_items_markup .= '    <div class="image-container">';
+                                $list_items_markup .= '    <div class="wep-card-img">';
                                 if (!empty($custom_width) && !empty($custom_height)) {
-                                    $list_items_markup .= '<img class="block-image" src="' . esc_url($image_url) . '" style="max-width: ' . esc_attr($custom_width) . '; max-height: ' . esc_attr($custom_height) . ';">';
+                                    $list_items_markup .= '<img src="' . esc_url($image_url) . '">';
                                 } else {
-                                    $list_items_markup .= '<img class="block-image" src="' . esc_url($image_url) . '">';
+                                    $list_items_markup .= '<img src="' . esc_url($image_url) . '">';
                                 }
                                 $list_items_markup .= '    </div>';
                             }
                         }
                     }
 
+                    $list_items_markup .= '<div class="wep-card-body"><div class="wep-card-heading">';
                     if (isset($attributes['showPostTitle']) && $attributes['showPostTitle'] == 1) {
-                        $list_items_markup .= '    <div class="post-title"  ';
+                        $list_items_markup .= '    <h4 class="wep-card-title"  ';
                         if ($title_Manage_styling === 'true') {
                             $list_items_markup .= ' style="font-size:' . esc_html($title_font_size) . '"';
                         }
                         $list_items_markup .= '>';
-                        $list_items_markup .= '<a href="' . esc_url($post_permalink) . '" class="title">' . esc_html($post_title) . '</a>';
-                        $list_items_markup .= '    </div>';
+                        $list_items_markup .= '<a href="' . esc_url($post_permalink) . '">' . esc_html($post_title) . '</a>';
+                        $list_items_markup .= '    </h4>';
                     }
 
                     if (isset($attributes['showMeta']) && $attributes['showMeta'] == 1) {
@@ -953,18 +1177,19 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                         $list_items_markup .= '    </div>';
                     }
 
+                    $list_items_markup .= '</div>';
                     if (isset($attributes['showContent']) && $attributes['showContent'] == 1) {
                         if (isset($attributes['contentType'])) {
                             if ($attributes['contentType'] == 'Excerpt') {
                                 $words_limit = isset($attributes['wordsLimit']) ? intval($attributes['wordsLimit']) : 100;
                                 $excerpt = get_the_excerpt();
                                 $words = explode(' ', $excerpt);
-                                $post_content = implode(' ', array_slice($words, 0, $words_limit)) . '...';
+                                $post_content = implode(' ', array_slice($words, 0, $words_limit));
                             } elseif ($attributes['contentType'] == 'Full-Post') {
                                 $post_content = get_the_content();
                             }
                         }
-                        $list_items_markup .= '    <div class="post-content"';
+                        $list_items_markup .= '    <div class="wep-card-text"';
                         if ($Content_Manage_styling === 'true') {
                             $list_items_markup .= ' style="font-size: ' . esc_html($Content_font_size) . ';"';
                         }
@@ -972,9 +1197,10 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                         $list_items_markup .=      apply_filters('adv_post_content', $post_content);
                         $list_items_markup .= '    </p></div>';
                     }
+                    $list_items_markup .= '</div>';
 
-                    $list_items_markup .= '    <div class="read-more-btn">';
-                    $list_items_markup .= '        <a target="_blank" href="' . esc_url($post_permalink) . '" class="read-more-button"';
+                    $list_items_markup .= '    <div class="wep-card-footer">';
+                    $list_items_markup .= '        <a target="_blank" href="' . esc_url($post_permalink) . '" class="wep-btn wep-btn-primary"';
                     if ($showReadMoreToggler === 'true') {
                         $list_items_markup .= ' style="font-size:' . esc_html($Read_more_font_size) . '"';
                     }
@@ -992,7 +1218,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
             $list_items_markup .= ' <button class="slider-button prev">❮</button>';
             $list_items_markup .= ' <button class="slider-button next">❯</button>';
             $list_items_markup .= '</div>';
-            $list_items_markup .= '</div>';
+            $list_items_markup .= '</div></div>';
 
             $js = "document.addEventListener('DOMContentLoaded', function() {
                 let currentIndex = 0;
@@ -1054,7 +1280,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                 $ReadMoreBgColor = !empty($attributes['ReadMoreBgColor']) ? $attributes['ReadMoreBgColor'] : '#000000';
 
                 $css .= '
-                 .masonry-layout .read-more-button {
+                 .masonry-layout .wep-btn {
                     padding: ' . $button_Top_bottom_Padding . ' ' . $button_Right_Left_Padding . ' !important;
 
                     background-color:' . $ReadMoreBgColor . '!important;
@@ -1082,10 +1308,21 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
             if (!empty($customCSS)) {
                 $css .= $customCSS;
             }
-            $css .=  '.masonry-layout {
-                column-gap: ' . $column_gap . ' !important; 
+
+            if( wp_is_mobile()){
+                $css .=  '.masonry-layout {
+                    column-gap: ' . $column_gap . ' !important;
+                    column-count: 1; 
+                }';
+            }else{
+                $css .=  '.masonry-layout {
+                    column-gap: ' . $column_gap . ' !important;
+                    column-count: '.$attributes["totalColoms"].'; 
+                }';
             }
-            .masonry-layout .post-container {
+
+            $css .=  '
+            .masonry-layout .wep-card-text {
                 margin-bottom: ' . $row_gap . ' !important; 
             }
             @media (min-width: 992px) {
@@ -1110,7 +1347,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
             $custom_css = "<style> " . $css . " </style>";
             $list_items_markup = '';
             $list_items_markup .= $custom_css;
-            $list_items_markup .= '<div class="masonry-layout">';
+            $list_items_markup .= '<div class="wep-root" ><div class="masonry-layout">';
             if (isset($attributes['PaginationOnToggler']) && !empty($attributes['PaginationOnToggler'])) {
                 $args['paged'] = get_query_var('paged') ? get_query_var('paged') : 1;
             }
@@ -1142,7 +1379,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                     }
 
                     $category_list = implode(', ', $category_names);
-                    $list_items_markup .= '<div class="post-container">';
+                    $list_items_markup .= '<div class="wep-card" style="margin-bottom: 30px;">';
                     $image_url = get_the_post_thumbnail_url(get_the_ID(), 'medium');
                     if (!empty($image_url)) {
                         if (isset($attributes['showImgToggler']) && $attributes['showImgToggler'] == 1) {
@@ -1157,25 +1394,26 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                                     $custom_height = $attributes['widthPercentage'];
                                 }
                             }
-                            $list_items_markup .= ' <div class="image-container">';
+                            $list_items_markup .= ' <div class="wep-card-img">';
                             if (!empty($custom_width) && !empty($custom_height)) {
-                                $list_items_markup .= '<img class="block-image" src="' . esc_url($image_url) . '" style="max-width: ' . esc_attr($custom_width) . '; max-height: ' . esc_attr($custom_height) . ';">';
+                                $list_items_markup .= '<img src="' . esc_url($image_url) . '">';
                             } else {
-                                $list_items_markup .= '<img class="block-image" src="' . esc_url($image_url) . '">';
+                                $list_items_markup .= '<img src="' . esc_url($image_url) . '">';
                             }
-                            $list_items_markup .= '    </div>';
+                            $list_items_markup .= '<span class="wep-chip">'.$category_list.'</span> </div>';
                         }
                     }
-
+                    $list_items_markup .= '<div class="wep-card-body"><div class="wep-card-heading">';
                     if (isset($attributes['showPostTitle']) && $attributes['showPostTitle'] == 1) {
-                        $list_items_markup .= '    <div class="post-title"  ';
+                        $list_items_markup .= '    <h4 class="wep-card-title"  ';
                         if ($title_Manage_styling === 'true') {
                             $list_items_markup .= ' style="font-size:' . esc_html($title_font_size) . '"';
                         }
                         $list_items_markup .= '>';
-                        $list_items_markup .= '<a href="' . esc_url($post_permalink) . '" class="title">' . esc_html($post_title) . '</a>';
-                        $list_items_markup .= '    </div>';
+                        $list_items_markup .= '<a href="' . esc_url($post_permalink) . '" >' . esc_html($post_title) . '</a>';
+                        $list_items_markup .= '    </h4>';
                     }
+                    
 
                     if (isset($attributes['showMeta']) && $attributes['showMeta'] == 1) {
                         $list_items_markup .= '    <div class="meta-data" ';
@@ -1186,7 +1424,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                         $list_items_markup .= '<p>' . esc_html($post_date) . ' | Author: ' . esc_html($post_author) . ' | Categories: ' . esc_html($category_list) . '</p>';
                         $list_items_markup .= '    </div>';
                     }
-
+                    $list_items_markup .= '</div>';
                     if (isset($attributes['showContent']) && $attributes['showContent'] == 1) {
                         if (isset($attributes['contentType'])) {
                             if ($attributes['contentType'] == 'Excerpt') {
@@ -1198,7 +1436,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                                 $post_content = get_the_content();
                             }
                         }
-                        $list_items_markup .= '    <div class="post-content"';
+                        $list_items_markup .= '    <div class="wep-card-text"';
                         if ($Content_Manage_styling === 'true') {
                             $list_items_markup .= ' style="font-size: ' . esc_html($Content_font_size) . ';"';
                         }
@@ -1206,9 +1444,10 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
                         $list_items_markup .=      apply_filters('adv_post_content', $post_content);
                         $list_items_markup .= '    </p></div>';
                     }
+                    $list_items_markup .= '</div>';
 
-                    $list_items_markup .= '    <div class="read-more-btn">';
-                    $list_items_markup .= '        <a target="_blank" href="' . esc_url($post_permalink) . '" class="read-more-button"';
+                    $list_items_markup .= '    <div class="wep-card-footer">';
+                    $list_items_markup .= '        <a target="_blank" class="wep-btn wep-btn-primary" href="' . esc_url($post_permalink) . '"';
                     if ($showReadMoreToggler === 'true') {
                         $list_items_markup .= ' style="font-size:' . esc_html($Read_more_font_size) . '"';
                     }
@@ -1222,7 +1461,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
 
             endif;
 
-            $list_items_markup .= '</div>';
+            $list_items_markup .= '</div></div>';
             if (isset($attributes['PaginationOnToggler']) && !empty($attributes['PaginationOnToggler'])) {
 
                 $pagination_args = array(
@@ -1238,7 +1477,7 @@ if (!class_exists('Advanced_Post_Listing_Block')) {
 
                 if ($pagination_links) {
                     $alignment_class = isset($attributes['paginationAline']) ? $attributes['paginationAline'] : 'center';
-                    $list_items_markup .= '<nav class="pagination ' . esc_attr($alignment_class) . '">';
+                    $list_items_markup .= '<nav class="pagination wep-pagination ' . esc_attr($alignment_class) . '">';
 
                     // Output the pagination links
                     foreach ($pagination_links as $link) {

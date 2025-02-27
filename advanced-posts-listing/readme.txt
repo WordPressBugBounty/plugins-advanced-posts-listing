@@ -4,8 +4,8 @@ Donate link:
 Tags: post list,posts,blog post, post listing, blog listing
 Requires at least: 6.2
 Requires PHP: 7.4
-Tested up to: 6.7.1
-Stable tag: 1.0.6
+Tested up to: 6.7.2
+Stable tag: 1.0.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,7 +15,7 @@ Display posts list from posts, pages or custom post types. Use Multiple designs 
 
 Advanced Posts Listing is a Gutenberg block plugin that enables site administrators to create & display visually appealing blog posts listing or custom post type listing effortlessly right from the Gutenberg editor. 
 
-This plugin provides five beautiful and responsive design / layouts for the listing. Site admins can choose custom post type from block properties & listing will be created accordingly with a live preview. 
+This plugin provides six beautiful and responsive design / layouts for the listing. Site admins can choose custom post type from block properties & listing will be created accordingly with a live preview. 
 
 This plugin also allows site admins to filter the custom post listing by taxonomy, terms and other criterias. The infomation displayed inside the listing record is also manageable from block properties.
 
@@ -32,7 +32,7 @@ Contact [Dedicated Support team](https://weplugins.com/support) for any assistan
 
 # Features List
 
-*  Five beautiful & responsive blog post listing designs.
+*  Six beautiful & responsive blog post listing designs.
 *  Numeric pagination support for every layout. Manageable settings for pagination.
 *  Display posts, pages, and custom post types listing.
 *  Filter posts by categories.
@@ -109,6 +109,9 @@ Yes, with this plugin you can optionally display all the information inside ever
 
 == Changelog ==
 
+= 1.0.7 =
+* Fix : Design Improvements for all layouts.
+
 = 1.0.6 =
 * Fix : Tested with latest version 6.7.1 and fixed layout issues.
 
@@ -136,6 +139,12 @@ Yes, with this plugin you can optionally display all the information inside ever
 * New : Optional display of data on frontend.
 
 == Upgrade Notice ==
+
+= 1.0.7 =
+Upgrade to improved layouts & to use one new layout.
+
+= 1.0.6 =
+Upgrade to more stable and updated version which has design issues fixed.
 
 = 1.0.5 =
 Upgrade to more stable and updated version which has color picker settings for buttons.
